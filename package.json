@@ -1,6 +1,6 @@
 {
   "name": "turkpin",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Javascript api library for Turkpin",
   "main": "src/index.js",
   "directories": {
@@ -24,5 +24,13 @@
   },
   "devDependencies": {
     "jest": "^28.1.3"
+  },
+  "homepage": "https://github.com/AkincanD/turkpin",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AkincanD/turkpin.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AkincanD/turkpin/issues"
   }
 }

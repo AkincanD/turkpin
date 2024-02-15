@@ -241,3 +241,5 @@ class Turkpin {
         }
     }
 }
+
+module.exports = Turkpin;
