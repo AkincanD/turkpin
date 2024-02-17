@@ -1,6 +1,6 @@
 {
   "name": "turkpin",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "Javascript api library for Turkpin",
   "main": "src/index.js",
   "directories": {
