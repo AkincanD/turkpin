@@ -28,32 +28,43 @@ class Turkpin {
                 }
             }
         });
-
+    
         try {
             const formData = new FormData();
             formData.append('DATA', requestXML);
-
+    
             const response = await axios.post(this.baseUrl, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-
+    
             const result = await this.xmlParser.parseStringPromise(response.data);
-
+    
             if (result.APIResponse.params.HATA_NO != '000') {
-                throw new Error(result.APIResponse.params.HATA_ACIKLAMA);
+                return {
+                    error: true,
+                    errorCode: result.APIResponse.params.HATA_NO,
+                    errorMessage: result.APIResponse.params.HATA_ACIKLAMA
+                };
             }
-
+    
             const balanceInfo = {
                 balance: result.APIResponse.params.balance,
                 credit: result.APIResponse.params.credit,
                 bonus: result.APIResponse.params.bonus,
                 spending: result.APIResponse.params.spending
             };
-
-            return balanceInfo;
+    
+            return {
+                error: false,
+                data: balanceInfo
+            };
         } catch (error) {
             console.error(`Error fetching balance: ${error}`);
-            throw error;
+            return {
+                error: true,
+                errorCode: "NETWORK_ERROR",
+                errorMessage: "Network error or API is not reachable"
+            };
         }
     }
 
@@ -67,36 +78,53 @@ class Turkpin {
                 }
             }
         });
-
+    
         try {
             const formData = new FormData();
             formData.append('DATA', requestXML);
-
+    
             const response = await axios.post(this.baseUrl, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-
+    
             const result = await this.xmlParser.parseStringPromise(response.data);
-
+    
             if (result.APIResponse.params.error != '000') {
-                throw new Error(result.APIResponse.params.error_desc);
+                return {
+                    error: true,
+                    errorCode: result.APIResponse.params.error,
+                    errorMessage: result.APIResponse.params.error_desc
+                };
             }
-
+    
             const games = result.APIResponse.params.oyunListesi.oyun.map(game => ({
                 id: game.id,
                 name: game.name
             }));
-
-            return games;
+    
+            return {
+                error: false,
+                data: games
+            };
         } catch (error) {
             console.error(`Error fetching game list: ${error}`);
-            throw error;
+            return {
+                error: true,
+                errorCode: "NETWORK_ERROR",
+                errorMessage: "Network error or API is not reachable"
+            };
         }
-    }
+    }    
 
     async gameProducts(gameId) {
-        if (!gameId) throw new Error('Game id is required');
-
+        if (!gameId) {
+            return {
+                error: true,
+                errorCode: 'MISSING_PARAMETER',
+                errorMessage: 'Game id is required'
+            };
+        }
+    
         const requestXML = this.xmlBuilder.buildObject({
             APIRequest: {
                 params: {
@@ -107,21 +135,25 @@ class Turkpin {
                 }
             }
         });
-
+    
         try {
             const formData = new FormData();
             formData.append('DATA', requestXML);
-
+    
             const response = await axios.post(this.baseUrl, formData, {
-                headers: { 'Content-Type': 'text/xml' }
+                headers: { 'Content-Type': 'multipart/form-data' }
             });
-
+    
             const result = await this.xmlParser.parseStringPromise(response.data);
-
+    
             if (result.APIResponse.params.error != '000') {
-                throw new Error(result.APIResponse.params.error_desc);
+                return {
+                    error: true,
+                    errorCode: result.APIResponse.params.error,
+                    errorMessage: result.APIResponse.params.error_desc
+                };
             }
-
+    
             const products = result.APIResponse.params.epinUrunListesi.urun.map(product => ({
                 id: product.id,
                 name: product.name,
@@ -131,21 +163,28 @@ class Turkpin {
                 minOrder: product.min_order,
                 maxOrder: product.max_order,
             }));
-
-            return products;
+    
+            return {
+                error: false,
+                data: products
+            };
         } catch (error) {
             console.error(`Error fetching game products: ${error}`);
-            throw error;
+            return {
+                error: true,
+                errorCode: "NETWORK_ERROR",
+                errorMessage: "Network error or API is not reachable"
+            };
         }
-    }
+    }    
 
     async createOrder(gameID, productID, quantity, character = null) {
-        if (!gameID) throw new Error('Game id is required');
-        if (!productID) throw new Error('Product id is required');
-        if (!quantity) throw new Error('Quantity is required');
-        if (quantity < 1) throw new Error('Quantity must be greater than 0');
-
-        const requestXML = this.xmlBuilder.buildObject({
+        if (!gameID) return { error: true, errorMessage: 'Game id is required' };
+        if (!productID) return { error: true, errorMessage: 'Product id is required' };
+        if (!quantity) return { error: true, errorMessage: 'Quantity is required' };
+        if (quantity < 1) return { error: true, errorMessage: 'Quantity must be greater than 0' };
+    
+        let requestXML = this.xmlBuilder.buildObject({
             APIRequest: {
                 params: {
                     cmd: 'epinSiparisYarat',
@@ -157,40 +196,51 @@ class Turkpin {
                 }
             }
         });
-
+    
         if (character) {
             requestXML.APIRequest.params.character = character;
         }
-
+    
         try {
             const formData = new FormData();
             formData.append('DATA', requestXML);
-
+    
             const response = await axios.post(this.baseUrl, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-
+    
             const result = await this.xmlParser.parseStringPromise(response.data);
-
+    
             if (result.APIResponse.params.HATA_NO != '000') {
-                throw new Error(result.APIResponse.params.HATA_ACIKLAMA);
+                return { error: true, errorCode: result.APIResponse.params.HATA_NO, errorMessage: result.APIResponse.params.HATA_ACIKLAMA };
             }
+    
+            let orders = [];
 
-            const orders = result.APIResponse.params.epin_list.epin.map(order => ({
-                code: order.code,
-                description: order.desc
-            }));
-
-            return orders;
+            if (Array.isArray(result.APIResponse.params.epin_list.epin)) {
+                orders = result.APIResponse.params.epin_list.epin.map(order => ({
+                    code: order.code,
+                    description: order.desc
+                }));
+            } else {
+                orders = [{
+                    code: result.APIResponse.params.epin_list.epin.code,
+                    description: result.APIResponse.params.epin_list.epin.desc
+                }];
+            }
+    
+            return { error: false, data: orders };
         } catch (error) {
             console.error(`Error creating order: ${error}`);
-            throw error;
+            return { error: true, errorMessage: 'An error occurred while creating the order' };
         }
     }
 
     async orderStatus(orderID) {
-        if (!orderID) throw new Error('Order id is required');
-
+        if (!orderID) {
+            return { error: true, errorMessage: 'Order id is required' };
+        }
+    
         const requestXML = this.xmlBuilder.buildObject({
             APIRequest: {
                 params: {
@@ -201,32 +251,34 @@ class Turkpin {
                 }
             }
         });
-
+    
         try {
             const formData = new FormData();
             formData.append('DATA', requestXML);
-
+    
             const response = await axios.post(this.baseUrl, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-
+    
             const result = await this.xmlParser.parseStringPromise(response.data);
-
+    
             if (result.APIResponse.params.DURUM_KODU != '000') {
-                throw new Error(result.APIResponse.params.DURUM_ACIKLAMA);
+                return { error: true, errorCode: result.APIResponse.params.DURUM_KODU, errorMessage: result.APIResponse.params.DURUM_ACIKLAMA };
             }
-
-            const order = new Map();
-            order.status = result.APIResponse.params.SIPARIS_DURUMU;
-            order.description = result.APIResponse.params.SIPARIS_DURUMU_ACIKLAMA;
-            order.lastUpdate = result.APIResponse.params.KONTROL_TARIHI;
-
-            return order;
+    
+            const orderStatus = {
+                status: result.APIResponse.params.SIPARIS_DURUMU,
+                description: result.APIResponse.params.SIPARIS_DURUMU_ACIKLAMA,
+                lastUpdate: result.APIResponse.params.KONTROL_TARIHI
+            };
+    
+            return { error: false, data: orderStatus };
         } catch (error) {
             console.error(`Error fetching order status: ${error}`);
-            throw error;
+            return { error: true, errorMessage: 'An error occurred while fetching the order status' };
         }
     }
+
 }
 
 module.exports = Turkpin;
