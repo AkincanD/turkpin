@@ -12,7 +12,9 @@ class Turkpin {
             throw new Error('Username and password are required');
         }
 
-        this.xmlBuilder = new xml2js.Builder();
+        this.xmlBuilder = new xml2js.Builder({
+            headless: true
+        });
         this.xmlParser = new xml2js.Parser({ explicitArray: false });
     }
 
@@ -28,17 +30,17 @@ class Turkpin {
         });
 
         try {
-            const response = await axios.post(this.baseUrl, requestXML, {
-                headers: { 'Content-Type': 'text/xml' }
+            const formData = new FormData();
+            formData.append('DATA', requestXML);
+
+            const response = await axios.post(this.baseUrl, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
             });
 
             const result = await this.xmlParser.parseStringPromise(response.data);
 
             if (result.APIResponse.params.HATA_NO != '000') {
-                return {
-                    status: false,
-                    message: result.APIResponse.params.HATA_ACIKLAMA
-                }
+                throw new Error(result.APIResponse.params.HATA_ACIKLAMA);
             }
 
             const balanceInfo = {
@@ -48,10 +50,7 @@ class Turkpin {
                 spending: result.APIResponse.params.spending
             };
 
-            return {
-                status: true,
-                data: balanceInfo
-            }
+            return balanceInfo;
         } catch (error) {
             console.error(`Error fetching balance: ${error}`);
             throw error;
@@ -70,17 +69,17 @@ class Turkpin {
         });
 
         try {
-            const response = await axios.post(this.baseUrl, requestXML, {
-                headers: { 'Content-Type': 'text/xml' }
+            const formData = new FormData();
+            formData.append('DATA', requestXML);
+
+            const response = await axios.post(this.baseUrl, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
             });
 
             const result = await this.xmlParser.parseStringPromise(response.data);
 
             if (result.APIResponse.params.error != '000') {
-                return {
-                    status: false,
-                    message: result.APIResponse.params.error_desc
-                }
+                throw new Error(result.APIResponse.params.error_desc);
             }
 
             const games = result.APIResponse.params.oyunListesi.oyun.map(game => ({
@@ -88,10 +87,7 @@ class Turkpin {
                 name: game.name
             }));
 
-            return {
-                status: true,
-                data: games
-            }
+            return games;
         } catch (error) {
             console.error(`Error fetching game list: ${error}`);
             throw error;
@@ -113,17 +109,17 @@ class Turkpin {
         });
 
         try {
-            const response = await axios.post(this.baseUrl, requestXML, {
+            const formData = new FormData();
+            formData.append('DATA', requestXML);
+
+            const response = await axios.post(this.baseUrl, formData, {
                 headers: { 'Content-Type': 'text/xml' }
             });
 
             const result = await this.xmlParser.parseStringPromise(response.data);
 
             if (result.APIResponse.params.error != '000') {
-                return {
-                    status: false,
-                    message: result.APIResponse.params.error_desc
-                }
+                throw new Error(result.APIResponse.params.error_desc);
             }
 
             const products = result.APIResponse.params.epinUrunListesi.urun.map(product => ({
@@ -136,10 +132,7 @@ class Turkpin {
                 maxOrder: product.max_order,
             }));
 
-            return {
-                status: true,
-                data: products
-            }
+            return products;
         } catch (error) {
             console.error(`Error fetching game products: ${error}`);
             throw error;
@@ -170,17 +163,17 @@ class Turkpin {
         }
 
         try {
-            const response = await axios.post(this.baseUrl, requestXML, {
-                headers: { 'Content-Type': 'text/xml' }
+            const formData = new FormData();
+            formData.append('DATA', requestXML);
+
+            const response = await axios.post(this.baseUrl, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
             });
 
             const result = await this.xmlParser.parseStringPromise(response.data);
 
             if (result.APIResponse.params.HATA_NO != '000') {
-                return {
-                    status: false,
-                    message: result.APIResponse.params.HATA_ACIKLAMA
-                }
+                throw new Error(result.APIResponse.params.HATA_ACIKLAMA);
             }
 
             const orders = result.APIResponse.params.epin_list.epin.map(order => ({
@@ -188,10 +181,7 @@ class Turkpin {
                 description: order.desc
             }));
 
-            return {
-                status: true,
-                data: orders
-            }
+            return orders;
         } catch (error) {
             console.error(`Error creating order: ${error}`);
             throw error;
@@ -213,17 +203,17 @@ class Turkpin {
         });
 
         try {
-            const response = await axios.post(this.baseUrl, requestXML, {
-                headers: { 'Content-Type': 'text/xml' }
+            const formData = new FormData();
+            formData.append('DATA', requestXML);
+
+            const response = await axios.post(this.baseUrl, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
             });
 
             const result = await this.xmlParser.parseStringPromise(response.data);
 
             if (result.APIResponse.params.DURUM_KODU != '000') {
-                return {
-                    status: false,
-                    message: 'Unknown error'
-                }
+                throw new Error(result.APIResponse.params.DURUM_ACIKLAMA);
             }
 
             const order = new Map();
@@ -231,10 +221,7 @@ class Turkpin {
             order.description = result.APIResponse.params.SIPARIS_DURUMU_ACIKLAMA;
             order.lastUpdate = result.APIResponse.params.KONTROL_TARIHI;
 
-            return {
-                status: true,
-                data: order
-            }
+            return order;
         } catch (error) {
             console.error(`Error fetching order status: ${error}`);
             throw error;
